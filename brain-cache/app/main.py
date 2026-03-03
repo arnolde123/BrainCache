@@ -3,7 +3,7 @@ from fastapi import FastAPI
 
 from app.routers import ingest, query
 
-app = FastAPI(title="Second Brain API", version="0.1.0")
+app = FastAPI(title="Brain Cache API", version="0.1.0")
 
 app.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
 app.include_router(query.router, prefix="/query", tags=["query"])

@@ -1,33 +1,36 @@
-"""Pydantic schemas for request/response models."""
 from pydantic import BaseModel, Field
+from typing import Annotated
 
+# Define a Search Result model 
+class SearchResult(BaseModel):
+    id: str
+    text: str
+    score: float
+    source: str | None = None
 
+# Define the main Request/Response models
 class IngestRequest(BaseModel):
-    """Request body for document ingestion."""
-
-    source_id: str = Field(..., description="Unique identifier for the source")
-    content: str = Field(..., description="Text content to ingest")
-    metadata: dict | None = Field(default=None, description="Optional metadata")
-
+    """Schema for ingesting new documents."""
+    # Content is the text of the document
+    content: str = Field(..., min_length=1, max_length=10000)
+    source_id: str = Field(..., description="Unique identifier for the document")
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict | None = None
 
 class IngestResponse(BaseModel):
-    """Response after successful ingestion."""
-
+    """Schema for ingestion response."""
     source_id: str
-    chunks_ingested: int
-    message: str = "Ingestion complete"
-
+    chunks_stored: int
+    message: str = "Ingestion successful"
 
 class QueryRequest(BaseModel):
-    """Request body for semantic search query."""
-
-    query: str = Field(..., description="Natural language query")
-    top_k: int = Field(default=5, ge=1, le=50, description="Number of results to return")
-
+    """Schema for natural language search."""
+    query: str = Field(..., min_length=1)
+    # top k is the number of results to return
+    top_k: int = Field(default=5, ge=1, le=20)
 
 class QueryResponse(BaseModel):
-    """Response with retrieved chunks and scores."""
-
+    """Schema for query response."""
     query: str
-    results: list[dict]
-    count: int
+    results: list[SearchResult]
+    total_found: int
