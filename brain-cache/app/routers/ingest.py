@@ -16,8 +16,10 @@ async def ingest(request: IngestRequest):
     Ingest a document: store in S3, chunk with overlap, embed in one batch, and index in Pinecone.
     """
     try:
-        # 1. Store raw content in S3
-        await s3.upload_content(request.source_id, request.content, request.metadata or {})
+        # 1. Store raw content in S3; keep key for Pinecone metadata (re-index, audit)
+        s3_key = await s3.upload_content(
+            request.source_id, request.content, request.metadata or {}
+        )
 
         # 2. Chunk with overlap (e.g. 300 words, 50-word overlap, sentence-aware)
         chunks = chunking.chunk_text(
@@ -45,6 +47,7 @@ async def ingest(request: IngestRequest):
                 "source_id": request.source_id,
                 "original_text": chunk[:METADATA_TEXT_MAX_LEN],
                 "chunk_index": i,
+                "s3_key": s3_key,
                 **{k: str(v) for k, v in extra.items()},
             }
             records.append((record_id, vec, metadata))
