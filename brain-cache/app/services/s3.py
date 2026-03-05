@@ -12,15 +12,20 @@ _bucket = None
 def _get_client():
     global _client, _bucket
     if _client is None:
-        key = os.getenv("AWS_ACCESS_KEY_ID")
-        secret = os.getenv("AWS_SECRET_ACCESS_KEY")
         region = os.getenv("AWS_REGION", "us-east-1")
         _bucket = os.getenv("S3_BUCKET")
-        if not all((key, secret, _bucket)):
-            raise ValueError("AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and S3_BUCKET must be set")
-        _client = boto3.client("s3", region_name=region, aws_access_key_id=key, aws_secret_access_key=secret)
+        if not _bucket:
+            raise ValueError("S3_BUCKET must be set")
+        # If AWS_ACCESS_KEY_ID is not set, boto3 uses the instance role automatically
+        key = os.getenv("AWS_ACCESS_KEY_ID")
+        secret = os.getenv("AWS_SECRET_ACCESS_KEY")
+        if key and secret:
+            _client = boto3.client("s3", region_name=region,
+                                   aws_access_key_id=key,
+                                   aws_secret_access_key=secret)
+        else:
+            _client = boto3.client("s3", region_name=region)  # uses instance role
     return _client, _bucket
-
 
 async def upload_content(source_id: str, content: str, metadata: dict) -> str:
     """Store raw content and metadata in S3; return object key."""
