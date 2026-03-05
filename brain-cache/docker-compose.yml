@@ -1,8 +1,13 @@
+version: "3.9"
 services:
-  brain-cache:
+  api:
     build: .
     ports:
       - "8000:8000"
-    env_file: .env
+    env_file:
+      - .env
     environment:
-      - PYTHONPATH=/app
+      - ENV=local
+    volumes:
+      - ./app:/app/app   # hot reload in dev
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
