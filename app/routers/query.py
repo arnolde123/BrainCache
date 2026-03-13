@@ -1,7 +1,8 @@
 """Query endpoint: semantic search over indexed content."""
 from fastapi import APIRouter, HTTPException
 
-from app.models import QueryRequest, QueryResponse, SearchResult
+from app.agent import compiled_graph
+from app.models import AgentQueryResponse, QueryRequest, QueryResponse, SearchResult
 from app.services import embeddings, pinecone
 
 router = APIRouter()
@@ -36,6 +37,34 @@ async def query(request: QueryRequest):
             query=request.query,
             results=results,
             total_found=len(results),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.post("/agent", response_model=AgentQueryResponse)
+async def agent_query(request: QueryRequest):
+    """
+    Run query through the LangGraph agent workflow.
+    """
+    try:
+        final_state = await compiled_graph.ainvoke(
+            {
+                "query": request.query,
+                "top_k": request.top_k,
+                "search_results": [],
+                "answer": "",
+                "needs_more_context": False,
+                "reasoning_steps": [],
+            }
+        )
+
+        sources = [_match_to_search_result(m) for m in final_state.get("search_results", [])]
+        return AgentQueryResponse(
+            query=request.query,
+            answer=final_state.get("answer", ""),
+            sources=sources,
+            reasoning_steps=final_state.get("reasoning_steps", []),
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e

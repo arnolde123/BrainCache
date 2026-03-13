@@ -34,3 +34,12 @@ class QueryResponse(BaseModel):
     query: str
     results: list[SearchResult]
     total_found: int
+
+
+class AgentQueryResponse(BaseModel):
+    """Schema for LangGraph-powered query response."""
+
+    query: str
+    answer: str
+    sources: list[SearchResult]
+    reasoning_steps: list[str] = Field(default_factory=list)

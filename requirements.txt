@@ -5,3 +5,7 @@ openai==2.24.0
 pinecone==7.0.0
 python-dotenv==1.2.2
 boto3>=1.34.0
+langgraph>=0.2.0
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-core>=0.3.0
