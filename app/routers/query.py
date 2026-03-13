@@ -50,21 +50,25 @@ async def agent_query(request: QueryRequest):
     try:
         final_state = await compiled_graph.ainvoke(
             {
-                "query": request.query,
-                "top_k": request.top_k,
-                "search_results": [],
-                "answer": "",
-                "needs_more_context": False,
-                "reasoning_steps": [],
+                "question": request.query,
+                "original_question": request.query,
+                "documents": [],
+                "all_docs_relevant": False,
+                "retrieval_attempts": 0,
+                "max_attempts": 3,
+                "answer": None,
+                "sources": [],
+                "was_query_rewritten": False,
+                "rewritten_questions": [],
             }
         )
 
-        sources = [_match_to_search_result(m) for m in final_state.get("search_results", [])]
         return AgentQueryResponse(
             query=request.query,
-            answer=final_state.get("answer", ""),
-            sources=sources,
-            reasoning_steps=final_state.get("reasoning_steps", []),
+            answer=final_state.get("answer") or "",
+            sources=final_state.get("sources", []),
+            was_query_rewritten=final_state.get("was_query_rewritten", False),
+            rewritten_questions=final_state.get("rewritten_questions", []),
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e

@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-from typing import Annotated
 
 # Define a Search Result model 
 class SearchResult(BaseModel):
@@ -41,5 +40,6 @@ class AgentQueryResponse(BaseModel):
 
     query: str
     answer: str
-    sources: list[SearchResult]
-    reasoning_steps: list[str] = Field(default_factory=list)
+    sources: list[str]
+    was_query_rewritten: bool = False
+    rewritten_questions: list[str] = Field(default_factory=list)
