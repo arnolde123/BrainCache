@@ -1,0 +1,48 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to ECR
+        run: |
+          IMAGE=${{ steps.login-ecr.outputs.registry }}/brain-cache:latest
+          docker build -t $IMAGE .
+          docker push $IMAGE
+
+      - name: SSH into EC2 and redeploy
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            aws ecr get-login-password --region us-east-1 | \
+              docker login --username AWS --password-stdin \
+              ${{ steps.login-ecr.outputs.registry }}
+            docker pull ${{ steps.login-ecr.outputs.registry }}/brain-cache:latest
+            docker stop brain-cache || true
+            docker rm brain-cache || true
+            docker run -d \
+              --name brain-cache \
+              --restart unless-stopped \
+              -p 8000:8000 \
+              -e ENV=production \
+              ${{ steps.login-ecr.outputs.registry }}/brain-cache:latest
